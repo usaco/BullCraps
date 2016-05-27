@@ -30,6 +30,9 @@ extern unsigned int NUMSIDES;
 // my bot's data
 extern struct player_data *SELF;
 
+// my bot's dice
+extern unsigned int DICE[];
+
 // file descriptors
 extern int _fdout, _fdin;
 

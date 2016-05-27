@@ -169,6 +169,9 @@ void setup_game(int argc, char** argv)
 		{
 			agents[i].dice[j] = rand() % NUMSIDES;
 			totals[agents[i].dice[j]]++;
+
+			sprintf(msg, "DIE %u %u", j, agents[i].dice[j]);
+			tell_bot(msg, i);
 		}
 	}
 }

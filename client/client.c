@@ -32,6 +32,8 @@ extern void game_end();
 unsigned int NUMPLAYERS = -1;
 unsigned int NUMDICE = -1;
 unsigned int NUMSIDES = -1;
+
+unsigned int DICE[MAXDICE];
 struct player_data players[MAXPLAYERS];
 
 struct player_data* SELF;
@@ -62,7 +64,7 @@ int send(char* msg)
 
 int main(int argc, char **argv)
 {
-	int i, myid, cc;
+	int i, j, k, myid, cc;
 	char msg[MSG_BFR_SZ];
 	char tag[MSG_BFR_SZ];
 
@@ -100,6 +102,11 @@ int main(int argc, char **argv)
 			sscanf(msg, "%*s %u", &NUMDICE);
 		else if (!strcmp(tag, "SIDES"))
 			sscanf(msg, "%*s %u", &NUMSIDES);
+		else if (!strcmp(tag, "DIE"))
+		{
+			sscanf(msg, "%*s %u %u", &j, &k);
+			DICE[j] = k;
+		}
 	}
 
 	game_setup(players);
