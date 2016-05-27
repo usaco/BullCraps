@@ -1,21 +1,21 @@
-NAME
+BullCraps
 ===========
 
-NAME! USACO YEAR
+BullCraps! USACO 2016
 
 ## Have questions?
 
-~~Try the [FAQ/Wiki](http://github.com/usaco/NAME/wiki).~~
+~~Try the [FAQ/Wiki](http://github.com/usaco/BullCraps/wiki).~~
 
 ## Need updates?
 
-If you need to update your local copy, navigate to `NAME/` and try:
+If you need to update your local copy, navigate to `BullCraps/` and try:
 
 ```bash
 git pull origin master
 ```
 
-## What is NAME?
+## What is BullCraps?
 
 TODO
 
@@ -24,17 +24,17 @@ TODO
 Begin by cloning a copy of the Git repo:
 
 ```bash
-git clone git://github.com/usaco/NAME.git
+git clone git://github.com/usaco/BullCraps.git
 ```
 
 Go to the `base/` directory and compile the driver:
 
 ```bash
-cd NAME/base
+cd BullCraps/base
 make
 ```
 
-This will create the NAME driver.
+This will create the BullCraps driver.
 
 Next, build the example bots to help with testing:
 

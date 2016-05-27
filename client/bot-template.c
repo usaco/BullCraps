@@ -17,8 +17,20 @@ void game_setup(const struct player_data* players)
 
 }
 
-// This function is called when your turn comes up. Make changes to SELF to affect the next round.
-void player_turn(unsigned int roundnum, const struct player_data* players)
+// This function is called when your turn comes up. Make changes to output to make a claim.
+void make_claim(unsigned int roundnum, const struct player_data* players, struct claim* output)
+{
+
+}
+
+// This function is called when someone else has made a claim. Return 1 to accuse "truth" and 0 to accuse "lie".
+int make_accusation(struct claim* claim)
+{
+
+}
+
+// This function is called when all accusations have been recorded (a good place to learn from your opponents)
+void end_turn(unsigned int roundnum, const struct player_data* players)
 {
 
 }

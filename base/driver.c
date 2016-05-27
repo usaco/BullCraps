@@ -45,6 +45,11 @@
 
 int NUMAGENTS = -1;
 struct agent_t agents[MAXAGENTS];
+int totals[MAXSIDES];
+
+int NUMDICE = 4;
+int NUMSIDES = 6;
+int IMBALANCE = 0;
 
 // file pointer to data for setting up the game
 FILE* gamedata = NULL;
@@ -63,6 +68,8 @@ void tell_bot(char*, int);
 
 // tell all bots (but one, possibly) a piece of data
 void tell_all(char*, int);
+
+void kill_bot(int);
 
 // close all bots' file descriptors
 void cleanup_bots();
@@ -108,7 +115,29 @@ void socket_setup()
 
 void setup_game(int argc, char** argv)
 {
-	unsigned int i; char msg[MSG_BFR_SZ];
+	unsigned int i, j;
+	char msg[MSG_BFR_SZ];
+	fgets(msg, MSG_BFR_SZ, gamedata);
+
+	sscanf(msg, "%d %d %d %d", &NUMDICE, &NUMSIDES, &IMBALANCE, &NUMAGENTS);
+
+	// setup all bots provided
+	for (i = 0; i < NUMAGENTS; ++i)
+	{
+		// get the command for this bot
+		fgets(msg, MSG_BFR_SZ, gamedata);
+
+		// remove newline for command
+		char *p = strchr(msg, '\n');
+		if (p) *p = 0;
+		
+		// setup the agent using this command
+		for (p = msg; *p && isspace(*p); ++p);
+		setup_agent(i, &agents[i], p);
+
+		agents[i].score = 0.0f;
+		agents[i].id = i;
+	}
 
 	for (i = 0; i < NUMAGENTS; ++i)
 	{
@@ -119,20 +148,110 @@ void setup_game(int argc, char** argv)
 		strncpy(agents[i].name, msg + 5, 255);
 		agents[i].name[255] = 0;
 	}
+
+	sprintf(msg, "DICE %u", NUMDICE);
+	tell_all(msg, -1);
+
+	sprintf(msg, "SIDES %u", NUMSIDES);
+	tell_all(msg, -1);
+
+	sprintf(msg, "PLAYERS %u", NUMAGENTS);
+	tell_all(msg, -1);
+
+	// do IMBALANCE stuff
+	
+	for (i = 0; i < NUMSIDES; ++i)
+		totals[i] = 0;
+	
+	for (i = 0; i < NUMAGENTS; ++i)
+	{
+		for (j = 0; j < NUMDICE; ++j)
+		{
+			agents[i].dice[j] = rand() % NUMSIDES;
+			totals[agents[i].dice[j]]++;
+		}
+	}
 }
 
 int play_game()
 {
 	char msg[MSG_BFR_SZ];
-	struct agent_t *a;
+	struct agent_t *a, *b;
+	unsigned int i, j, rnum;
+	unsigned int acc;
+
+	unsigned int cval, cnum, istruth;
+	unsigned int claims[MAXSIDES];
+
+	for (i = 0; i < MAXSIDES; ++i)
+		claims[i] = 0u;
+
+	float POOL = ((float)NUMAGENTS - 1.0f)/2.0f;
+	for (rnum = 0;; rnum++)
+	{
+		for (i = 0, a = agents; i < NUMAGENTS; ++a, ++i)
+		{
+			tell_bot("GO", i);
+
+			listen_bot_timeout(msg, i, a->timeout);
+			if (a->status != RUNNING) continue;
+
+			sscanf(msg, "%*s %u %u", &cval, &cnum);
+			if (cnum <= claims[cval])
+			{
+			//	kill_bot(i);
+				fprintf(stderr, "Wanted to kill bot\n");
+				continue;
+			}
+
+			if (cnum > NUMDICE * NUMAGENTS) goto gameover;
+			claims[cval] = cnum;
+			istruth = (cnum <= totals[cval]);
+
+			sprintf(msg, "CLAIMED %u %u %u", i, cval, cnum);
+			tell_all(msg, i);
+
+			acc = 0;
+			a->truth = -1;
+
+			for (j = 0, b = agents; j < NUMAGENTS; ++b, ++j)
+			{
+				if (i == j) continue;
+
+				listen_bot_timeout(msg, j, b->timeout);
+				if (b->status != RUNNING) continue;
+
+				sscanf(msg, "%*s %u", &b->truth);
+
+				if (b->truth != istruth)
+				{
+					a->score += 1.0f;
+					b->score -= 1.0f;
+				}
+				else if (!istruth && !b->truth) ++acc;
+
+				sprintf(msg, "ACCUSE %u %u", j, b->truth);
+				tell_all(msg, j);
+			}
+			
+			if (acc)
+			{
+				a->score -= POOL;
+				for (j = 0, b = agents; j < NUMAGENTS; ++b, ++j)
+					if (!b->truth) b->score += POOL/((float)acc);
+			}
+
+			tell_all("ENDTURN", -1);
+			update_bcb_vis(NUMAGENTS, agents, rnum);
+		}
+	}
 
 gameover:
 	tell_all("ENDGAME", -1);
 	return 0;
 }
 
-void sighandler(int signum)
-{
+void sighandler(int signum){
 	fprintf(stderr, "!!! Signal %d\n", signum);
 	close_bcb_vis();
 	cleanup_bots();
@@ -151,13 +270,12 @@ int main(int argc, char** argv)
 	gettimeofday(&tv, NULL);
 	srand(tv.tv_usec);
 
-	if (argc < 2)
-	{
-		fprintf(stderr, "USAGE: %s <gamefile>\n", argv[0]);
-		exit(0);
-	}
+	char* gamefile = "driver.dat";
+	if (argc > 1) gamefile = argv[1];
 
+	gamedata = fopen(gamefile, "r");
 	setup_game(argc, argv);
+
 	if (setup_bcb_vis(NUMAGENTS, agents, &argc, &argv))
 	{
 		tell_all("READY", -1);
@@ -214,7 +332,7 @@ void setup_agent(int bot, struct agent_t* agent, char* filename)
 		if (pipe(c2p) || pipe(p2c))
 		{
 			// the pipes were not properly set up (perhaps no more file descriptors)
-			fprintf(stderr, "Couldn't set up codriverunication for bot%d\n", bot+1);
+			fprintf(stderr, "Couldn't set up communication for bot%d\n", bot+1);
 			exit(1);
 		}
 
@@ -318,6 +436,11 @@ void tell_all(char* msg, int exclude)
 	unsigned int i;
 	for (i = 0; i < NUMAGENTS; ++i)
 		if (i != exclude) tell_bot(msg, i);
+}
+
+void kill_bot(int bot)
+{
+	agents[bot].status = ERROR;
 }
 
 // close all bots' file descriptors

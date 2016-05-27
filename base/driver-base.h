@@ -7,10 +7,17 @@
 #define ERROR -1
 
 #define MAXAGENTS 12
+#define MAXDICE 100
+#define MAXSIDES 1000
 
 struct agent_t
 {
+	int id;
 	char name[256];       // bot name
+
+	unsigned int dice[MAXDICE];
+	int truth;
+	float score;
 
 // META:
 	int status;           // bot's current status

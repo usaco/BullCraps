@@ -11,8 +11,14 @@ int setup_bcb_vis(int numagents, struct agent_t *agents, int *argc, char ***argv
 
 int update_bcb_vis(int numagents, struct agent_t *agents, const int turn)
 {
-	int i, j; struct agent_t *a = agents;
+	int i; struct agent_t *a = agents;
 	fprintf(stderr, "Round #%d\n", turn);
+
+	for (i = 0; i < numagents; ++i, ++a)
+	{
+		fprintf(stderr, "Player #%d (%s): Score = %f\n", i, a->name, a->score);
+	}
+	sleep(1);
 
 	return 1;
 };

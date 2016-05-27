@@ -81,7 +81,7 @@ struct Image read_image(char *filename)
 	// add alpha channel, using transparent key
 	for (i = I.height * I.width - 1; i >= 0; --i)
 	{
-		medriverove(I.data + 4 * i, I.data + 3 * i, 3);
+		memmove(I.data + 4 * i, I.data + 3 * i, 3);
 		I.data[4 * i + 3] = 255 * !memcmp(I.data + 4 * i, TRANSPARENT, 3);
 	}
 
@@ -125,7 +125,7 @@ struct Image read_image_colored(char *filename, float *color)
 	// add alpha channel, using transparent key
 	for (i = I.height * I.width - 1; i >= 0; --i)
 	{
-		medriverove(I.data + 4 * i, I.data + 3 * i, 3);
+		memmove(I.data + 4 * i, I.data + 3 * i, 3);
 		I.data[4 * i + 3] = 255 * !memcmp(I.data + 4 * i, TRANSPARENT, 3);
 
 		if (!memcmp(I.data + 4 * i, COLORABLE, 3))
@@ -133,7 +133,7 @@ struct Image read_image_colored(char *filename, float *color)
 			unsigned char newcolor[3];
 			for (j = 0; j < 3; ++j)
 				newcolor[j] = (unsigned char)(255 * color[j]);
-			medriverove(I.data + 4 * i, newcolor, 3);
+			memmove(I.data + 4 * i, newcolor, 3);
 		}
 	}
 
@@ -256,11 +256,6 @@ void gr_rect(float x, float y, float w, float h)
 
 void draw_object(int coord, struct Image image)
 {
-	int row = BOARDSIZE - 1 - (coord / BOARDSIZE);
-	int col = coord % BOARDSIZE;
-
-	float scale = min(WINDOW_W * 1.0 / image.width / BOARDSIZE, WINDOW_H * 1.0 / image.height / BOARDSIZE);
-	gr_draw_image(col * WINDOW_W / BOARDSIZE, row * WINDOW_H / BOARDSIZE, scale, image);
 }
 
 int _numagents;
@@ -274,14 +269,6 @@ int draw_screen(int numagents, struct agent_t *agents, const int turn)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	gr_set_orthographic_projection();
 
-	float fieldscale = WINDOW_W * 1.0 / field.width / BOARDSIZE;
-	
-	for (i = 0; i < BOARDSIZE; ++i)
-	for (j = 0; j < BOARDSIZE; ++j)
-	{
-		gr_draw_image(i * WINDOW_W / BOARDSIZE, j * WINDOW_H / BOARDSIZE, fieldscale, field);
-	}
-	
 	return 1;
 }
 
