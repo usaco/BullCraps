@@ -5,7 +5,7 @@
 // This is the name that the driver will refer to your bot as.
 const char* BOT_NAME = "DummyBot";
 
-unsigned int claims[MAXDICE];
+unsigned int claims[MAXSIDES];
 
 // Return whether setup was successful, bot dies if 0.
 int client_setup(int *argc, char ***argv)
@@ -17,7 +17,7 @@ int client_setup(int *argc, char ***argv)
 void game_setup(const struct player_data* players)
 {
 	int i;
-	for (i = 0; i < NUMDICE; ++i)
+	for (i = 0; i < NUMSIDES; ++i)
 		claims[i] = 0u;
 }
 
@@ -25,7 +25,7 @@ void game_setup(const struct player_data* players)
 void make_claim(unsigned int roundnum, const struct player_data* players, struct claim* output)
 {
 	
-	output->val = rand()%NUMDICE;
+	output->val = rand()%NUMSIDES;
 	output->count = ++claims[output->val];
 }
 

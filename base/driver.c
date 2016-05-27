@@ -202,8 +202,8 @@ int play_game()
 			sscanf(msg, "%*s %u %u", &cval, &cnum);
 			if (cnum <= claims[cval])
 			{
-			//	kill_bot(i);
-				fprintf(stderr, "Wanted to kill bot\n");
+				fprintf(stderr, ">>>>>>>>>>> Killed bot %u (%s)\n", i, a->name);
+				kill_bot(i);
 				continue;
 			}
 
