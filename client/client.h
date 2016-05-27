@@ -18,7 +18,6 @@ struct player_data
 	unsigned int id;
 
 	// information about the player
-	unsigned int dice[MAXDICE];
 	struct claim last_claim;
 	unsigned int last_accusation;
 };

@@ -23,7 +23,7 @@ extern void make_claim(unsigned int /*roundnum*/, const struct player_data* /*pl
 
 extern int make_accusation(struct claim* /*input*/);
 
-extern void end_turn(unsigned int /*roundnum*/, const struct player_data* /*players*/);
+extern void end_turn(unsigned int /*roundnum*/, const struct player_data* /*players*/, const struct claim* /*last claim*/);
 
 extern void game_end();
 
@@ -69,6 +69,7 @@ int main(int argc, char **argv)
 	char tag[MSG_BFR_SZ];
 
 	struct player_data *p = NULL;
+	struct claim *last_claim = NULL;
 
 	--argc; ++argv;
 	setbuf(stdout, NULL);
@@ -130,9 +131,10 @@ int main(int argc, char **argv)
 			sscanf(msg, "%*s %*u %u %u",
 				&players[oid].last_claim.val,
 				&players[oid].last_claim.count);
-
+	
+			last_claim = &players[oid].last_claim;
 			sprintf(msg, "RESPOND %u",
-				make_accusation(&players[oid].last_claim));
+				make_accusation(last_claim));
 			send(msg);
 		}
 		else if (!strcmp(tag, "ACCUSE"))
@@ -143,7 +145,7 @@ int main(int argc, char **argv)
 		}
 		else if (!strcmp(tag, "ENDTURN"))
 		{
-			end_turn(rnum, players);
+			end_turn(rnum, players, last_claim);
 		}
 		
 		// got an unexpected message...

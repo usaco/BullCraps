@@ -37,7 +37,7 @@ int make_accusation(struct claim* claim)
 }
 
 // This function is called when all accusations have been recorded (a good place to learn from your opponents)
-void end_turn(unsigned int roundnum, const struct player_data* players)
+void end_turn(unsigned int roundnum, const struct player_data* players, struct claim* last_claim)
 {
 
 }
