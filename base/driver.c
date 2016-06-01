@@ -444,6 +444,7 @@ void tell_all(char* msg, int exclude)
 void kill_bot(int bot)
 {
 	agents[bot].status = ERROR;
+	agents[bot].score = -99999.0f;
 }
 
 // close all bots' file descriptors

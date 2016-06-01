@@ -36,6 +36,8 @@ float COLORS[][4] =
 	{1.0, 0.5, 1.0, 0.0},
 };
 
+#define THIS_FONT GLUT_BITMAP_HELVETICA_12
+
 unsigned int NUMCOLORS = sizeof(COLORS)/(3 * sizeof(float));
 
 // cow information
@@ -45,7 +47,7 @@ unsigned char COLORABLE[] = {0, 0, 0};
 float BLACK[] = {0, 0, 0, 0};
 float WHITE[] = {1, 1, 1, 0};
 
-unsigned int WINDOW_W = 600;
+unsigned int WINDOW_W = 800;
 unsigned int WINDOW_H = 600;
 
 struct Image
@@ -181,10 +183,16 @@ void gr_draw_image(float x, float y, float s, struct Image I)
 	glPopMatrix();
 }
 
+void gr_draw_image_centered(float x, float y, float h, struct Image I)
+{
+	float s = h/(float)I.height;
+	gr_draw_image(x - (int)(I.width*s/2), y - (int)(I.height*s/2), s, I);
+}
+
 void gr_change_size(int w, int h)
 {
 	/* Avoid divide by zero */
-	if(h == 0) h = 1;
+	if (h == 0) h = 1;
 
 	/* Reset the coordinate system before modifying */
 	glMatrixMode(GL_PROJECTION);
@@ -208,7 +216,7 @@ void gr_set_orthographic_projection(void)
 
 int gr_textlen(char *text)
 {
-	void *font = GLUT_BITMAP_HELVETICA_18;
+	void *font = THIS_FONT;
 	int i, L = strlen(text), x = 0;
 	for( i=0; i<L && text[i]; i++ )
 		x += glutBitmapWidth(font, text[i] );
@@ -231,7 +239,7 @@ void gr_print_font(int x, int y, char *text, float* color, void* font)
 }
 
 void gr_print(int x, int y, char *text, float* color)
-{ gr_print_font(x, y, text, color, GLUT_BITMAP_HELVETICA_18); }
+{ gr_print_font(x, y, text, color, THIS_FONT); }
 
 void gr_print_centered(int x, int y, char *text, float* color)
 { gr_print(x - gr_textlen(text)/2, y, text, color); }
@@ -254,20 +262,41 @@ void gr_rect(float x, float y, float w, float h)
 	glPopMatrix();
 }
 
-void draw_object(int coord, struct Image image)
-{
-}
-
 int _numagents;
 struct agent_t *_agents;
 int _turn;
+
+void draw_histogram(struct agent_t *a, int x, int y, int w, int h)
+{
+	
+}
 
 #define SCALE(x) log(x)
 int draw_screen(int numagents, struct agent_t *agents, const int turn)
 {
 	int i, j;
+	struct agent_t *a;
+	char text[256];
+	
+	int row_height = WINDOW_H / numagents;
+	
+	int xbuffer = 50;
+	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	gr_set_orthographic_projection();
+
+	for (i = 0, a = agents; i < numagents; ++i, ++a)
+	{
+		struct VisData* vis = a->vis;
+		int x = xbuffer;
+		int y = row_height * i + (row_height / 2);
+		gr_draw_image_centered(x, y, row_height-40, vis->image);
+		
+		sprintf(text, "%.2lf", a->score);
+		gr_print_centered(x, row_height*(i+1)-25, a->name, BLACK);
+		gr_print_centered(x, row_height*(i+1)-15, text, BLACK);
+		draw_histogram(a, x+60, y-50, 100, 100);
+	}
 
 	return 1;
 }
@@ -278,7 +307,7 @@ int setup_bcb_vis(int numagents, struct agent_t *agents, int *argc, char ***argv
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 
 	glutInitWindowSize(WINDOW_W, WINDOW_H);
-	glutCreateWindow("");
+	glutCreateWindow("Bull Craps");
 
 	glutReshapeFunc( gr_change_size );
 	gr_change_size(WINDOW_W, WINDOW_H);
@@ -287,6 +316,15 @@ int setup_bcb_vis(int numagents, struct agent_t *agents, int *argc, char ***argv
 	glEnable(GL_BLEND);
 	glEnable(GL_ALPHA_TEST);
 	glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+	
+	int i;
+	for (i = 0; i < numagents; ++i)
+	{
+		visdata[i].color = COLORS[i % NUMCOLORS];
+		visdata[i].image = read_image_colored("images/cow.ppm", visdata[i].color);
+		
+		agents[i].vis = &visdata[i];
+	}
 
 	glutMainLoopEvent();
 	draw_screen(numagents, agents, 0);
