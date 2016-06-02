@@ -48,7 +48,7 @@ float COLORS[][4] =
 	{1.0, 0.5, 1.0, 0.0},
 };
 
-#define THIS_FONT GLUT_BITMAP_HELVETICA_12
+#define THIS_FONT GLUT_BITMAP_HELVETICA_18
 
 unsigned int NUMCOLORS = sizeof(COLORS)/(3 * sizeof(float));
 
@@ -60,8 +60,8 @@ float BLACK[] = {0, 0, 0, 0};
 float RED[] = {1, 0, 0, 0};
 float WHITE[] = {1, 1, 1, 0};
 
-unsigned int WINDOW_W = 800;
-unsigned int WINDOW_H = 600;
+unsigned int WINDOW_W = 1200;
+unsigned int WINDOW_H = 900;
 
 struct Image
 {
@@ -300,24 +300,40 @@ int _turn;
 extern unsigned int claims[];
 extern int totals[];
 
+struct diedata
+{
+	unsigned int face;
+	unsigned int total;
+};
+
+struct diedata dieinfo[MAXSIDES];
+
+int dicesort(const void* ap, const void* bp)
+{
+	struct diedata* a = (struct diedata*)ap;
+	struct diedata* b = (struct diedata*)bp;
+	return b->total - a->total;
+}
+
 void draw_histogram(int x, int y, int w, int h)
 {
-	int i;
+	int ii, i;
 	char text[256];
 	
 	// add labels and bars
-	for (i = 0; i < NUMSIDES; ++i)
+	for (ii = 0; ii < NUMSIDES; ++ii)
 	{
-		int xoff = (i+0.5)*w/NUMSIDES;
-		sprintf(text, "%d", i+1);
+		i = dieinfo[ii].face;
+		int xoff = (ii+0.5)*w/NUMSIDES;
+		sprintf(text, "%d", ii+1);
 		gr_print_centered(x+xoff, y-20, text, BLACK);
 		
 		glColor4fv(RED);
 		int cutoff = (h*totals[i]/(NUMDICE*NUMAGENTS));
-		gr_rect(x + i*w/NUMSIDES, y+cutoff, w/NUMSIDES, 2);
+		gr_rect(x + ii*w/NUMSIDES, y+cutoff, w/NUMSIDES, 2);
 		
 		glColor4fv(claims[i]>totals[i] ? RED : BLACK);
-		gr_rect(x + i*w/NUMSIDES, y, w/NUMSIDES, (h*claims[i]/(NUMDICE*NUMAGENTS)));
+		gr_rect(x + ii*w/NUMSIDES, y, w/NUMSIDES, (h*claims[i]/(NUMDICE*NUMAGENTS)));
 	}
 	
 	// draw the boundary box
@@ -329,7 +345,7 @@ int scoresort(const void* ap, const void* bp)
 {
 	struct agent_t* a = (struct agent_t*)ap;
 	struct agent_t* b = (struct agent_t*)bp;
-	return a->score - b->score;
+	return (a->score > b->score) - (a->score < b->score);
 }
 
 #define SCALE(x) log(x)
@@ -354,11 +370,12 @@ int draw_screen(int numagents, struct agent_t *agents, const int turn)
 		struct VisData* vis = a->vis;
 		int x = xbuffer;
 		int y = row_height * i + (row_height / 2);
-		gr_draw_image_centered(x, y, row_height-40, vis->image);
+
+		gr_draw_image_centered(x, y-20, row_height-40, vis->image);
 		
 		sprintf(text, "%.2lf", a->score);
-		gr_print_centered(x, row_height*(i+1)-25, a->name, BLACK);
-		gr_print_centered(x, row_height*(i+1)-15, text, BLACK);
+		gr_print_centered(x, row_height*(i+1)-40, a->name, BLACK);
+		gr_print_centered(x, row_height*(i+1)-20, text, BLACK);
 	}
 	
 	draw_histogram(150, 40, WINDOW_W-160, WINDOW_H-50);
@@ -390,6 +407,14 @@ int setup_bcb_vis(int numagents, struct agent_t *agents, int *argc, char ***argv
 		
 		agents[i].vis = &visdata[i];
 	}
+
+	for (i = 0; i < NUMSIDES; ++i)
+	{
+		dieinfo[i].face = i;
+		dieinfo[i].total = totals[i];
+	}
+
+	qsort(dieinfo, NUMSIDES, sizeof(struct diedata), dicesort);
 
 	glutMainLoopEvent();
 	draw_screen(numagents, agents, 0);

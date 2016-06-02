@@ -23,7 +23,7 @@ extern void make_claim(unsigned int /*roundnum*/, const struct player_data* /*pl
 
 extern int make_accusation(struct claim* /*input*/);
 
-extern void end_turn(unsigned int /*roundnum*/, const struct player_data* /*players*/, const struct claim* /*last claim*/);
+extern void end_turn(unsigned int /*roundnum*/, const struct player_data* /*players*/, struct claim* /*last claim*/);
 
 extern void game_end();
 
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 		}
 		else if (!strcmp(tag, "ENDTURN"))
 		{
-			end_turn(rnum, players, last_claim);
+			end_turn(rnum, (struct player_data*)players, last_claim);
 		}
 		
 		// got an unexpected message...
