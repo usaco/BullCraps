@@ -34,6 +34,18 @@ float COLORS[][4] =
 	{1.0, 1.0, 0.5, 0.0},
 	{0.5, 1.0, 1.0, 0.0},
 	{1.0, 0.5, 1.0, 0.0},
+	{1.0, 0.0, 0.0, 0.0},
+	{0.0, 1.0, 0.0, 0.0},
+	{0.0, 0.0, 1.0, 0.0},
+	{1.0, 1.0, 0.0, 0.0},
+	{0.0, 1.0, 1.0, 0.0},
+	{1.0, 0.0, 1.0, 0.0},
+	{1.0, 0.5, 0.5, 0.0},
+	{0.5, 1.0, 0.5, 0.0},
+	{0.5, 0.5, 1.0, 0.0},
+	{1.0, 1.0, 0.5, 0.0},
+	{0.5, 1.0, 1.0, 0.0},
+	{1.0, 0.5, 1.0, 0.0},
 };
 
 #define THIS_FONT GLUT_BITMAP_HELVETICA_12
@@ -45,6 +57,7 @@ unsigned char TRANSPARENT[] = {255, 0, 255};
 unsigned char COLORABLE[] = {0, 0, 0};
 
 float BLACK[] = {0, 0, 0, 0};
+float RED[] = {1, 0, 0, 0};
 float WHITE[] = {1, 1, 1, 0};
 
 unsigned int WINDOW_W = 800;
@@ -262,30 +275,81 @@ void gr_rect(float x, float y, float w, float h)
 	glPopMatrix();
 }
 
+void gr_box(float x, float y, float w, float h)
+{
+	glPushMatrix();
+	glLoadIdentity();
+
+	glTranslatef(x, y, 0.0);
+
+	glDisable(GL_TEXTURE_2D);
+	glBegin(GL_LINE_LOOP);
+	glVertex3f(0, 0, 0.0);
+	glVertex3f(0, h, 0.0);
+	glVertex3f(w, h, 0.0);
+	glVertex3f(w, 0, 0.0);
+	glEnd();
+
+	glPopMatrix();
+}
+
 int _numagents;
 struct agent_t *_agents;
 int _turn;
 
-void draw_histogram(struct agent_t *a, int x, int y, int w, int h)
+extern unsigned int claims[];
+extern int totals[];
+
+void draw_histogram(int x, int y, int w, int h)
 {
+	int i;
+	char text[256];
 	
+	// add labels and bars
+	for (i = 0; i < NUMSIDES; ++i)
+	{
+		int xoff = (i+0.5)*w/NUMSIDES;
+		sprintf(text, "%d", i+1);
+		gr_print_centered(x+xoff, y-20, text, BLACK);
+		
+		glColor4fv(RED);
+		int cutoff = (h*totals[i]/(NUMDICE*NUMAGENTS));
+		gr_rect(x + i*w/NUMSIDES, y+cutoff, w/NUMSIDES, 2);
+		
+		glColor4fv(claims[i]>totals[i] ? RED : BLACK);
+		gr_rect(x + i*w/NUMSIDES, y, w/NUMSIDES, (h*claims[i]/(NUMDICE*NUMAGENTS)));
+	}
+	
+	// draw the boundary box
+	glColor4fv(BLACK);
+	gr_box(x, y, w, h);
+}
+
+int scoresort(const void* ap, const void* bp)
+{
+	struct agent_t* a = (struct agent_t*)ap;
+	struct agent_t* b = (struct agent_t*)bp;
+	return a->score - b->score;
 }
 
 #define SCALE(x) log(x)
 int draw_screen(int numagents, struct agent_t *agents, const int turn)
 {
-	int i, j;
+	int i;
 	struct agent_t *a;
 	char text[256];
 	
-	int row_height = WINDOW_H / numagents;
+	struct agent_t sortedagents[MAXAGENTS];
+	memcpy(sortedagents, agents, sizeof(sortedagents));
+	qsort(sortedagents, numagents, sizeof(struct agent_t), scoresort);
 	
-	int xbuffer = 50;
+	int row_height = WINDOW_H / numagents;
+	int xbuffer = 75;
 	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	gr_set_orthographic_projection();
 
-	for (i = 0, a = agents; i < numagents; ++i, ++a)
+	for (i = 0, a = sortedagents; i < numagents; ++i, ++a)
 	{
 		struct VisData* vis = a->vis;
 		int x = xbuffer;
@@ -295,8 +359,9 @@ int draw_screen(int numagents, struct agent_t *agents, const int turn)
 		sprintf(text, "%.2lf", a->score);
 		gr_print_centered(x, row_height*(i+1)-25, a->name, BLACK);
 		gr_print_centered(x, row_height*(i+1)-15, text, BLACK);
-		draw_histogram(a, x+60, y-50, 100, 100);
 	}
+	
+	draw_histogram(150, 40, WINDOW_W-160, WINDOW_H-50);
 
 	return 1;
 }
@@ -331,14 +396,14 @@ int setup_bcb_vis(int numagents, struct agent_t *agents, int *argc, char ***argv
 
 	glutSwapBuffers();
 	glutMainLoopEvent();
-	usleep(3000000L);
+	usleep(5000000L);
 
 	return 1;
 }
 
 int update_bcb_vis(int numagents, struct agent_t *agents, const int turn)
 {
-	//if (turn > 10 && (turn % (int)(2 * log(turn)))) return 1;
+	//if (turn > 10 && !(turn % (int)(2 * log(turn)))) return 1;
 	draw_screen(numagents, agents, turn);
 
 	_numagents = numagents;
@@ -347,18 +412,36 @@ int update_bcb_vis(int numagents, struct agent_t *agents, const int turn)
 
 	glutSwapBuffers();
 	glutMainLoopEvent();
-	usleep(1000000L / (10 + turn));
+	
+	long sleeptime = 10000000L / (10 + turn);
+	int i, shorten = 1;
+	for (i = 0; i < NUMSIDES; ++i)
+		if (claims[i] <= totals[i]) shorten = 0;
+	if (shorten) sleeptime /= 8L;
+	
+	usleep(sleeptime);
 
 	return 1;
 }
 
 void close_bcb_vis()
 {
+	int i;
 	draw_screen(_numagents, _agents, _turn);
+	
+	struct agent_t sortedagents[MAXAGENTS];
+	memcpy(sortedagents, _agents, sizeof(sortedagents));
+	qsort(sortedagents, _numagents, sizeof(struct agent_t), scoresort);
+	
+	for (i = 0; i < _numagents; ++i)
+	{
+		struct agent_t *a = &sortedagents[_numagents-1-i];
+		printf("#%02d %s %5.2lf\n", i+1, a->name, a->score);
+	}
 
 	glutSwapBuffers();
 	glutMainLoopEvent();
 
-	usleep(3000000L);
+	usleep(5000000L);
 }
 

@@ -6,7 +6,7 @@
 #define RUNNING 0
 #define ERROR -1
 
-#define MAXAGENTS 12
+#define MAXAGENTS 24
 #define MAXDICE 100
 #define MAXSIDES 1000
 

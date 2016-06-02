@@ -1,4 +1,4 @@
-#define DEBUG 1
+#define DEBUG 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -176,6 +176,7 @@ void setup_game(int argc, char** argv)
 	}
 }
 
+unsigned int claims[MAXSIDES];
 int play_game()
 {
 	char msg[MSG_BFR_SZ];
@@ -184,7 +185,6 @@ int play_game()
 	unsigned int acc;
 
 	unsigned int cval, cnum, istruth;
-	unsigned int claims[MAXSIDES];
 
 	for (i = 0; i < MAXSIDES; ++i)
 		claims[i] = 0u;
@@ -207,7 +207,6 @@ int play_game()
 				continue;
 			}
 
-			if (cnum > NUMDICE * NUMAGENTS) goto gameover;
 			claims[cval] = cnum;
 			istruth = (cnum <= totals[cval]);
 
@@ -243,6 +242,8 @@ int play_game()
 				for (j = 0, b = agents; j < NUMAGENTS; ++b, ++j)
 					if (!b->truth) b->score += POOL/((float)acc);
 			}
+			
+			if (cnum > NUMDICE * NUMAGENTS) goto gameover;
 
 			tell_all("ENDTURN", -1);
 			update_bcb_vis(NUMAGENTS, agents, rnum);
